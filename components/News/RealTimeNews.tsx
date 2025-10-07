@@ -86,6 +86,7 @@ export const RealTimeNews = () => {
   // --- End New Function ---
   
   const fetchNews = async (forceRefresh = false) => {
+    console.log('RealTimeNews fetchNews called', { forceRefresh, currentArticlesCount: articles.length });
     setLoading(true);
     setError(null);
     setMarketOverview(null); // Clear overview on refresh
@@ -111,6 +112,11 @@ export const RealTimeNews = () => {
       }
       
       const fetchedArticlesData = Array.isArray(data) ? data : (Array.isArray(data.articles) ? data.articles : []);
+      console.log('RealTimeNews received articles:', { 
+        count: fetchedArticlesData.length, 
+        firstTitle: fetchedArticlesData[0]?.title,
+        firstPublishedAt: fetchedArticlesData[0]?.publishedAt || fetchedArticlesData[0]?.published_at
+      });
       setArticles(fetchedArticlesData); 
       
       // --- Trigger overview fetch after articles are set ---
@@ -135,6 +141,7 @@ export const RealTimeNews = () => {
   };
 
   useEffect(() => {
+    console.log('RealTimeNews useEffect triggered - fetching news');
     fetchNews();
   }, []);
 
