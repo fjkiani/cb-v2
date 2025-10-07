@@ -41,9 +41,11 @@ export const RealTimeNews = () => {
       return;
     }
     
-    setIsOverviewLoading(true);
+    // Only set loading if we don't already have an overview
+    if (!marketOverview) {
+      setIsOverviewLoading(true);
+    }
     setOverviewError(null);
-    setMarketOverview(null); // Clear previous overview
     
     try {
       console.log('Requesting market overview for', fetchedArticles.length, 'articles');
@@ -88,7 +90,12 @@ export const RealTimeNews = () => {
     
     try {
       setIsRefreshing(forceRefresh);
-      const response = await fetch(`${BACKEND_CONFIG.BASE_URL}/api/news${forceRefresh ? '?refresh=true' : ''}`);
+      const url = new URL(`${BACKEND_CONFIG.BASE_URL}/api/news`);
+      if (forceRefresh) {
+        url.searchParams.set('refresh', 'true');
+      }
+      url.searchParams.set('t', Date.now().toString()); // Cache bust
+      const response = await fetch(url.toString());
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
