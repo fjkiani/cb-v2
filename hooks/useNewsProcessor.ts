@@ -112,8 +112,8 @@ export function useNewsProcessor(articles: RawNewsArticle[]) {
             },
             published_at: publishedAt,
             display_date: formatDate(publishedAt),
-            summary: article.content?.slice(0, 200) + '...' ?? 'No content available',
-            keyPoints: [article.content?.slice(0, 100) ?? 'No content available'],
+            summary: (article.content ? article.content.slice(0, 200) + '...' : 'No content available'),
+            keyPoints: [article.content ? article.content.slice(0, 100) : 'No content available'],
             entities: {
               companies: [],
               sectors: [],

@@ -1,7 +1,8 @@
 import { supabase } from './supabase/client';
 import type { RawNewsArticle } from '../types';
+import { BACKEND_CONFIG } from './backend/config';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = BACKEND_CONFIG.BASE_URL;
 
 class BackendAPI {
   private async handleSupabaseError(error: any): Promise<never> {
@@ -39,8 +40,7 @@ class BackendAPI {
     try {
       const response = await fetch(`${API_URL}/api/scrape/trading-economics${forceFresh ? '?fresh=true' : ''}`, {
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.auth.getSession()}`
+          'Content-Type': 'application/json'
         }
       });
 

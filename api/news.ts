@@ -2,7 +2,8 @@ import { NewsArticle } from './types';
 
 const DIFFBOT_TOKEN = import.meta.env.VITE_DIFFBOT_TOKEN;
 const DIFFBOT_API_URL = 'https://api.diffbot.com/v3/article';
-const API_URL = 'https://backend-khaki-omega.vercel.app';
+import { BACKEND_CONFIG } from '../services/backend/config';
+const API_URL = BACKEND_CONFIG.BASE_URL;
 
 export const fetchLatestNews = async (): Promise<NewsArticle[]> => {
   console.log('Fetching from:', `${API_URL}/api/news`);

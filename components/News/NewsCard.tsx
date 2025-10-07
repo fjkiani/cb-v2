@@ -172,7 +172,51 @@ export const NewsCard: React.FC<NewsCardProps> = ({ article }) => {
           <span className="font-medium">Full Article</span>
         </div>
         <p className="text-gray-600 text-sm whitespace-pre-line">
-          {article.raw.content ? article.raw.content.replace(/\d+\s+(?:minutes?|hours?|days?)\s+ago/i, '').trim() : 'No content available'}
+          {(() => {
+            // Try multiple sources for content in correct priority order
+            let content = '';
+
+            // First priority: raw.content (preserved from backend)
+            if (article.raw?.content && article.raw.content !== 'No content available' && article.raw.content.length > 5) {
+              content = article.raw.content;
+            }
+            // Second priority: top-level content
+            else if (article.content && article.content !== 'No content available' && article.content.length > 5) {
+              content = article.content;
+            }
+            // Third priority: summary
+            else if (article.summary && article.summary !== 'No content available' && article.summary.length > 5) {
+              content = article.summary;
+            }
+
+            // Enhanced debugging - only log once per article to avoid spam
+            if (!content || content.length < 10) {
+              const debugKey = `debug-${article.id}`;
+              if (!window[debugKey]) {
+                window[debugKey] = true;
+                console.debug('No content found for article:', {
+                  title: article.raw?.title || article.title,
+                  id: article.id,
+                  articleKeys: Object.keys(article),
+                  rawKeys: article.raw ? Object.keys(article.raw) : 'no raw',
+                  hasRawContent: !!article.raw?.content,
+                  rawContentLength: article.raw?.content?.length || 0,
+                  rawContentPreview: article.raw?.content?.substring(0, 50) || 'none',
+                  hasContent: !!article.content,
+                  contentLength: article.content?.length || 0,
+                  contentPreview: article.content?.substring(0, 50) || 'none',
+                  hasSummary: !!article.summary,
+                  summaryLength: article.summary?.length || 0,
+                  summaryPreview: article.summary?.substring(0, 50) || 'none'
+                });
+              }
+            }
+
+            if (content && content.length > 5) {
+              return content.replace(/\d+\s+(?:minutes?|hours?|days?)\s+ago/i, '').trim();
+            }
+            return 'Content loading...';
+          })()}
         </p>
       </div>
 

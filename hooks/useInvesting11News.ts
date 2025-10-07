@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 
-const BACKEND_URL = 'https://backend-khaki-omega.vercel.app';
+import { BACKEND_CONFIG } from '../services/backend/config';
+const BACKEND_URL = BACKEND_CONFIG.BASE_URL;
 
 export const useInvesting11News = () => {
   return useQuery({

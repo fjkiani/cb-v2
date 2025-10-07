@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../services/supabase/client';
-import { backendAPI } from '../services/backend/api';
+import { BACKEND_CONFIG } from '../services/backend/config';
 import type { RawNewsArticle } from '../types';
 import type { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
@@ -9,71 +9,83 @@ export function useNewsScraper(refreshInterval = 300000) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>('DISCONNECTED');
+  const [isScraping, setIsScraping] = useState(false);
+  const isFetchingRef = useRef(false);
 
-  const fetchNews = useCallback(async () => {
+  const getItemTime = (a: any): number => {
+    const d = a?.created_at || a?.createdAt || a?.published_at || a?.publishedAt || a?.date || a?.timestamp;
+    const t = d ? new Date(d).getTime() : 0;
+    return Number.isFinite(t) ? t : 0;
+  };
+
+  const sortArticles = useCallback((articles: RawNewsArticle[]) => {
+    return [...articles].sort((a, b) => getItemTime(b) - getItemTime(a));
+  }, []);
+
+  const fetchNews = useCallback(async (useFresh = false) => {
+    if (isFetchingRef.current) {
+      console.debug('[useNewsScraper] fetchNews skipped (in-flight)');
+      return;
+    }
+    isFetchingRef.current = true;
     try {
       setLoading(true);
-      const articles = await backendAPI.getRecentArticles();
-      console.log('Fetched articles:', articles.length);
-      
-      // Sort articles by date, most recent first
-      const sortedArticles = [...articles].sort((a, b) => {
-        const dateA = new Date(a.publishedAt || a.created_at);
-        const dateB = new Date(b.publishedAt || b.created_at);
-        
-        // Log sorting for debugging
-        // console.debug('Sorting articles:', {
-        //   a: {
-        //     title: a.title,
-        //     publishedAt: a.publishedAt,
-        //     created_at: a.created_at,
-        //     parsed: dateA.toISOString(),
-        //     timestamp: dateA.getTime()
-        //   },
-        //   b: {
-        //     title: b.title,
-        //     publishedAt: b.publishedAt,
-        //     created_at: b.created_at,
-        //     parsed: dateB.toISOString(),
-        //     timestamp: dateB.getTime()
-        //   }
-        // });
-        
-        return dateB.getTime() - dateA.getTime();
-      });
-      
-      // console.log('Sorted articles:', {
-      //   count: sortedArticles.length,
-      //   newest: {
-      //     title: sortedArticles[0]?.title,
-      //     publishedAt: sortedArticles[0]?.publishedAt,
-      //     created_at: sortedArticles[0]?.created_at
-      //   },
-      //   oldest: {
-      //     title: sortedArticles[sortedArticles.length - 1]?.title,
-      //     publishedAt: sortedArticles[sortedArticles.length - 1]?.publishedAt,
-      //     created_at: sortedArticles[sortedArticles.length - 1]?.created_at
-      //   }
-      // });
-      
-      setNews(sortedArticles);
+      const endpoint = useFresh ? '/api/news?fresh=true' : '/api/news';
+      const url = new URL(`${BACKEND_CONFIG.BASE_URL}${endpoint}`);
+      url.searchParams.set('t', Date.now().toString()); // cache bust
+      console.debug('[useNewsScraper] GET', url.toString());
+      const response = await fetch(url.toString(), { cache: 'no-store' });
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      const data = await response.json();
+      const list: RawNewsArticle[] = Array.isArray(data) ? data : (data?.articles ?? []);
+      const sorted = sortArticles(list);
+
+      // Debug: log first three
+      const preview = sorted.slice(0, 3).map((a) => ({
+        title: a.title,
+        created_at: a.created_at || a.published_at || a.publishedAt,
+        url: a.url
+      }));
+      console.debug('[useNewsScraper] Received articles:', { count: sorted.length, first3: preview });
+
+      setNews(sorted);
       setError(null);
     } catch (err) {
-      console.error('Failed to fetch news:', err);
+      console.error('[useNewsScraper] fetchNews error', err);
       setError(err instanceof Error ? err : new Error('Failed to fetch news'));
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
-  }, []);
+  }, [sortArticles]);
 
-  // Helper function to sort articles
-  const sortArticles = useCallback((articles: RawNewsArticle[]) => {
-    return [...articles].sort((a, b) => {
-      const dateA = new Date(a.publishedAt || a.created_at);
-      const dateB = new Date(b.publishedAt || b.created_at);
-      return dateB.getTime() - dateA.getTime();
-    });
-  }, []);
+  const triggerScraper = useCallback(async () => {
+    if (isScraping) return;
+    try {
+      setIsScraping(true);
+      setError(null);
+      const trig = new URL(`${BACKEND_CONFIG.BASE_URL}/api/scrape/trading-economics`);
+      trig.searchParams.set('fresh', 'true');
+      trig.searchParams.set('t', Date.now().toString()); // cache bust
+      console.debug('[useNewsScraper] TRIGGER', trig.toString());
+      const triggerRes = await fetch(trig.toString(), { method: 'GET', cache: 'no-store' });
+      if (!triggerRes.ok) {
+        let body: any = null;
+        try { body = await triggerRes.json(); } catch {}
+        throw new Error(`Scraper trigger failed: ${body?.message || triggerRes.statusText}`);
+      }
+      // Poll for fresh data a few times
+      for (let i = 0; i < 4; i++) {
+        await new Promise(r => setTimeout(r, i === 0 ? 4000 : 3000));
+        await fetchNews(true);
+      }
+    } catch (err) {
+      console.error('[useNewsScraper] triggerScraper error', err);
+      setError(err instanceof Error ? err : new Error('Failed to trigger scraper'));
+    } finally {
+      setIsScraping(false);
+    }
+  }, [isScraping, fetchNews]);
 
   useEffect(() => {
     let mounted = true;
@@ -82,60 +94,31 @@ export function useNewsScraper(refreshInterval = 300000) {
 
     async function setupSubscription() {
       try {
-        // Initial fetch
         await fetchNews();
 
-        // Set up subscription
         channel = supabase.channel('articles-changes')
           .on(
             'postgres_changes',
-            {
-              event: '*', // Listen for all events
-              schema: 'public',
-              table: 'articles'
-            },
+            { event: '*', schema: 'public', table: 'articles' },
             (payload: RealtimePostgresChangesPayload<RawNewsArticle>) => {
-              console.log('Received real-time update:', payload);
               if (!mounted) return;
-
               if (payload.eventType === 'INSERT') {
-                setNews(current => {
-                  const newArticle = payload.new;
-                  const exists = current.some(article => article.url === newArticle.url);
-                  if (exists) return current;
-                  // Sort the articles after adding the new one
-                  return sortArticles([newArticle, ...current]);
-                });
+                setNews(current => sortArticles([payload.new as any, ...current] as any));
               } else if (payload.eventType === 'UPDATE') {
-                setNews(current => {
-                  const updated = current.map(article => 
-                    article.id === payload.new.id ? payload.new : article
-                  );
-                  // Re-sort after update
-                  return sortArticles(updated);
-                });
+                setNews(current => sortArticles(current.map(a => (a.id === (payload.new as any).id ? (payload.new as any) : a)) as any));
               }
             }
           )
-          .subscribe((status: string) => {
-            console.log('Subscription status changed:', status);
-            setSubscriptionStatus(status);
-          });
-
-        console.log('Channel setup complete');
+          .subscribe((status: string) => setSubscriptionStatus(status));
       } catch (err) {
-        console.error('Error setting up subscription:', err);
         setError(err instanceof Error ? err : new Error('Failed to setup subscription'));
       }
     }
 
-    // Setup initial subscription
     setupSubscription();
 
-    // Regular polling as backup
     timeoutId = window.setInterval(() => {
       if (subscriptionStatus !== 'SUBSCRIBED') {
-        console.log('Polling for updates (subscription status:', subscriptionStatus + ')');
         fetchNews();
       }
     }, refreshInterval);
@@ -143,12 +126,13 @@ export function useNewsScraper(refreshInterval = 300000) {
     return () => {
       mounted = false;
       window.clearInterval(timeoutId);
-      if (channel) {
-        console.log('Cleaning up subscription...');
-        supabase.removeChannel(channel);
-      }
+      if (channel) supabase.removeChannel(channel);
     };
-  }, [refreshInterval, fetchNews]);
+  }, [refreshInterval, fetchNews, sortArticles, subscriptionStatus]);
 
-  return { news, loading, error, subscriptionStatus };
+  const refreshNews = useCallback(async () => {
+    await triggerScraper();
+  }, [triggerScraper]);
+
+  return { news, loading, error, isScraping, subscriptionStatus, refreshNews };
 }

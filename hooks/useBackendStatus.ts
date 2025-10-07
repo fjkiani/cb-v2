@@ -12,7 +12,7 @@ export function useBackendStatus(checkInterval = BACKEND_CONFIG.HEALTH_CHECK_INT
     const checkStatus = async () => {
       try {
         setIsChecking(true);
-        const url = 'https://backend-khaki-omega.vercel.app/api/health';  // Hardcode for testing
+        const url = `${BACKEND_CONFIG.BASE_URL}/api/health`;  // Use configured URL
         console.log('Checking backend status at:', url);
         
         const response = await fetch(url, {
