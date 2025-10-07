@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NewsCard } from './NewsCard';
 import { ProcessedArticle } from '../../services/news/types'; // Keep for NewsCard prop type
 // Import the shared InternalArticle type
@@ -44,6 +44,7 @@ export const RealTimeNews = ({
   const [marketOverview, setMarketOverview] = useState<string | null>(null);
   const [isOverviewLoading, setIsOverviewLoading] = useState(false);
   const [overviewError, setOverviewError] = useState<string | null>(null);
+  const lastOverviewSignature = useRef<string>('');
   // --- End New State ---
 
   // --- New Function to Fetch Market Overview ---
@@ -56,6 +57,13 @@ export const RealTimeNews = ({
     // Prevent multiple simultaneous overview fetches
     if (isOverviewLoading) {
       console.log('Market overview already loading, skipping...');
+      return;
+    }
+    
+    // Prevent fetching if we already have an overview for these articles
+    const articlesSignature = fetchedArticles.map(a => a.id).sort().join(',');
+    if (marketOverview && articlesSignature === lastOverviewSignature.current) {
+      console.log('Market overview already generated for these articles, skipping...');
       return;
     }
     
@@ -86,6 +94,9 @@ export const RealTimeNews = ({
       
       setMarketOverview(data.overview || 'Overview generation returned empty.'); // Set the overview text
       console.log('Market overview debug info:', data.debug); // Log debug info from backend
+      
+      // Update the signature to prevent re-fetching for the same articles
+      lastOverviewSignature.current = articlesSignature;
       
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during overview generation';
@@ -178,6 +189,17 @@ export const RealTimeNews = ({
       fetchNews();
     }
   }, [propArticles, propLoading, propError]);
+
+  // Fetch market overview when articles change (but only if we haven't already processed them)
+  useEffect(() => {
+    if (articles.length > 0 && !loading && !error) {
+      const articlesSignature = articles.map(a => a.id).sort().join(',');
+      if (articlesSignature !== lastOverviewSignature.current) {
+        console.log('Articles changed, fetching market overview...');
+        fetchMarketOverview(articles);
+      }
+    }
+  }, [articles.length, loading, error]); // Only depend on length, loading, and error, not the entire articles array
 
   const handleRefresh = () => {
     if (onRefresh) {
