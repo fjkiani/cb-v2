@@ -88,7 +88,7 @@ export const RealTimeNews = () => {
     
     try {
       setIsRefreshing(forceRefresh);
-      const response = await fetch(`${BACKEND_CONFIG.BASE_URL}/api/real-time-news/news${forceRefresh ? '?refresh=true' : ''}`);
+      const response = await fetch(`${BACKEND_CONFIG.BASE_URL}/api/news${forceRefresh ? '?refresh=true' : ''}`);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -100,7 +100,7 @@ export const RealTimeNews = () => {
         throw new Error(data.error);
       }
       
-      const fetchedArticlesData = Array.isArray(data.articles) ? data.articles : [];
+      const fetchedArticlesData = Array.isArray(data) ? data : (Array.isArray(data.articles) ? data.articles : []);
       setArticles(fetchedArticlesData); 
       
       // --- Trigger overview fetch after articles are set ---
