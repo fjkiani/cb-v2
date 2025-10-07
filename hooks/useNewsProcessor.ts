@@ -4,6 +4,7 @@ import { RawNewsArticle, ProcessedArticle } from '../services/news/types';
 export function useNewsProcessor(articles: RawNewsArticle[]) {
   const [processedArticles, setProcessedArticles] = useState<ProcessedArticle[]>([]);
   const [loading, setLoading] = useState(false);
+  const [lastProcessedSignature, setLastProcessedSignature] = useState<string>('');
   const [error, setError] = useState<Error | null>(null);
 
   const formatDate = (dateString: string) => {
@@ -65,6 +66,15 @@ export function useNewsProcessor(articles: RawNewsArticle[]) {
 
   useEffect(() => {
     const processArticles = async () => {
+      // Create a signature to prevent infinite processing of the same articles
+      const articlesSignature = articles.map(a => `${a.id}-${a.title}-${a.published_at || a.publishedAt}`).join('|');
+      
+      // Skip processing if we've already processed these exact articles
+      if (articlesSignature === lastProcessedSignature && articlesSignature !== '') {
+        console.log('Skipping article processing - already processed these articles');
+        return;
+      }
+      
       try {
         setLoading(true);
         console.log('Processing articles:', articles);
@@ -167,6 +177,7 @@ export function useNewsProcessor(articles: RawNewsArticle[]) {
 
         setProcessedArticles(sortedArticles);
         setError(null);
+        setLastProcessedSignature(articlesSignature); // Mark these articles as processed
       } catch (err) {
         console.error('Error processing articles:', err);
         setError(err instanceof Error ? err : new Error('Failed to process articles'));

@@ -22,11 +22,23 @@ interface RealTimeArticle {
 */
 
 // Rename the component
-export const RealTimeNews = () => {
-  // Use the shared InternalArticle type for state
-  const [articles, setArticles] = useState<InternalArticle[]>([]); 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface RealTimeNewsProps {
+  articles?: InternalArticle[];
+  loading?: boolean;
+  error?: string | null;
+  onRefresh?: () => void;
+}
+
+export const RealTimeNews = ({ 
+  articles: propArticles, 
+  loading: propLoading, 
+  error: propError, 
+  onRefresh 
+}: RealTimeNewsProps = {}) => {
+  // Use props if provided, otherwise use local state
+  const [articles, setArticles] = useState<InternalArticle[]>(propArticles || []);
+  const [loading, setLoading] = useState(propLoading ?? true);
+  const [error, setError] = useState<string | null>(propError || null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   // --- New State for Market Overview ---
   const [marketOverview, setMarketOverview] = useState<string | null>(null);
@@ -140,15 +152,41 @@ export const RealTimeNews = () => {
     }
   };
 
+  // Update local state when props change
   useEffect(() => {
-    console.log('RealTimeNews useEffect triggered - fetching news');
-    fetchNews();
-  }, []);
+    if (propArticles) {
+      setArticles(propArticles);
+    }
+  }, [propArticles]);
+
+  useEffect(() => {
+    if (propLoading !== undefined) {
+      setLoading(propLoading);
+    }
+  }, [propLoading]);
+
+  useEffect(() => {
+    if (propError !== undefined) {
+      setError(propError);
+    }
+  }, [propError]);
+
+  // Only fetch news if no props are provided (standalone mode)
+  useEffect(() => {
+    if (!propArticles && !propLoading && !propError) {
+      console.log('RealTimeNews useEffect triggered - fetching news (standalone mode)');
+      fetchNews();
+    }
+  }, [propArticles, propLoading, propError]);
 
   const handleRefresh = () => {
-    // setLoading(true); // Already handled in fetchNews
-    // setError(null); 
-    fetchNews(true);
+    if (onRefresh) {
+      onRefresh();
+    } else {
+      // setLoading(true); // Already handled in fetchNews
+      // setError(null); 
+      fetchNews(true);
+    }
   };
 
   // Initial loading state for the main articles

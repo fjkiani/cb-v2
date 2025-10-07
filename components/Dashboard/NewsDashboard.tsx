@@ -157,27 +157,28 @@ export const NewsDashboard: React.FC = () => {
   
   // --- Trigger TE Overview Fetch --- 
   useEffect(() => {
-    console.log('[useEffect TE Overview] Running effect. Conditions:', {
-      newsLoading,
-      newsError: newsError === null,
-      newsLength: news.length > 0,
-      // Check if news object reference has changed AND we haven't fetched for it
-      needsFetch: news !== overviewFetchedForNewsRef.current
-    });
-    // Fetch overview only when news is loaded, not loading, no error, 
-    // there are articles, AND we haven't fetched for this specific news array instance yet.
-    if (!newsLoading && newsError === null && news.length > 0) {
-      // Only fetch if we haven't fetched for this batch of news yet
+    // Only fetch overview when news is loaded, not loading, no error, and there are articles
+    if (!newsLoading && !newsError && news.length > 0) {
+      // Create a signature based on article IDs to prevent duplicate processing
       const newsSignature = news.map(n => n.id).sort().join(',');
       const lastSignature = overviewFetchedForNewsRef.current;
 
+      console.log('[useEffect TE Overview] Running effect. Conditions:', {
+        newsLoading,
+        newsError: !newsError,
+        newsLength: news.length > 0,
+        needsFetch: newsSignature !== lastSignature,
+        newsSignature: newsSignature.substring(0, 50) + '...',
+        lastSignature: lastSignature.substring(0, 50) + '...'
+      });
+
       if (newsSignature !== lastSignature) {
         console.log('[useEffect TE Overview] Conditions MET. Calling fetchTeMarketOverview.');
-        console.log('[useEffect TE Overview] News signature:', newsSignature);
-        console.log('[useEffect TE Overview] Last signature:', lastSignature);
         fetchTeMarketOverview(news);
         // Mark that we have fetched for this news signature
         overviewFetchedForNewsRef.current = newsSignature;
+      } else {
+        console.log('[useEffect TE Overview] Skipping - already processed these articles');
       }
     }
   }, [news, newsLoading, newsError]); // Keep dependencies, but add check inside
@@ -356,7 +357,12 @@ export const NewsDashboard: React.FC = () => {
             </TabsContent>
 
             <TabsContent value="investing11">
-              <RealTimeNews />
+              <RealTimeNews 
+                articles={news}
+                loading={newsLoading}
+                error={newsError}
+                onRefresh={refreshNews}
+              />
             </TabsContent>
 
             <TabsContent value="market-sentiment">
