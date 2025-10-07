@@ -165,7 +165,7 @@ export const NewsDashboard: React.FC = () => {
 
       console.log('[useEffect TE Overview] Running effect. Conditions:', {
         newsLoading,
-        newsError: !newsError,
+        newsError,
         newsLength: news.length > 0,
         needsFetch: newsSignature !== lastSignature,
         newsSignature: newsSignature.substring(0, 50) + '...',
@@ -180,8 +180,14 @@ export const NewsDashboard: React.FC = () => {
       } else {
         console.log('[useEffect TE Overview] Skipping - already processed these articles');
       }
+    } else {
+      console.log('[useEffect TE Overview] Skipping - conditions not met:', {
+        newsLoading,
+        newsError,
+        newsLength: news.length
+      });
     }
-  }, [news, newsLoading, newsError]); // Keep dependencies, but add check inside
+  }, [news, newsLoading]); // Remove newsError from dependencies to prevent infinite loop
   // --- End Trigger ---
 
   const newsForProcessor: ServiceRawNewsArticle[] = useMemo(() => {

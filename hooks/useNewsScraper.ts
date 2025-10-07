@@ -131,7 +131,7 @@ export function useNewsScraper(refreshInterval = 300000) {
       window.clearInterval(timeoutId);
       if (channel) supabase.removeChannel(channel);
     };
-  }, [refreshInterval, fetchNews, sortArticles, subscriptionStatus]);
+  }, [refreshInterval, sortArticles, subscriptionStatus]); // Remove fetchNews to prevent infinite loop
 
   const refreshNews = useCallback(async () => {
     await triggerScraper();
