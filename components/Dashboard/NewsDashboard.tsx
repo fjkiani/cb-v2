@@ -168,8 +168,8 @@ export const NewsDashboard: React.FC = () => {
         newsError,
         newsLength: news.length > 0,
         needsFetch: newsSignature !== lastSignature,
-        newsSignature: newsSignature.substring(0, 50) + '...',
-        lastSignature: lastSignature.substring(0, 50) + '...'
+        newsSignature: newsSignature ? newsSignature.substring(0, 50) + '...' : 'null',
+        lastSignature: lastSignature ? lastSignature.substring(0, 50) + '...' : 'null'
       });
 
       if (newsSignature !== lastSignature) {
