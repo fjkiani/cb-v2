@@ -30,9 +30,12 @@ export function useNewsScraper(refreshInterval = 300000) {
     isFetchingRef.current = true;
     try {
       setLoading(true);
-      const endpoint = useFresh ? '/api/news?fresh=true' : '/api/news';
+      const endpoint = '/api/news'; // Always use the same endpoint as RealTimeNews
       const url = new URL(`${BACKEND_CONFIG.BASE_URL}${endpoint}`);
       url.searchParams.set('t', Date.now().toString()); // cache bust
+      if (useFresh) {
+        url.searchParams.set('refresh', 'true'); // Force refresh from backend
+      }
       console.debug('[useNewsScraper] GET', url.toString());
       const response = await fetch(url.toString(), { cache: 'no-store' });
       if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);

@@ -41,10 +41,13 @@ export const RealTimeNews = () => {
       return;
     }
     
-    // Only set loading if we don't already have an overview
-    if (!marketOverview) {
-      setIsOverviewLoading(true);
+    // Prevent multiple simultaneous overview fetches
+    if (isOverviewLoading) {
+      console.log('Market overview already loading, skipping...');
+      return;
     }
+    
+    setIsOverviewLoading(true);
     setOverviewError(null);
     
     try {
