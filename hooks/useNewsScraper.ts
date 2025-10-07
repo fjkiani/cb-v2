@@ -45,9 +45,9 @@ export function useNewsScraper(refreshInterval = 300000) {
 
       // Debug: log first three
       const preview = sorted.slice(0, 3).map((a) => ({
-        title: a.title,
-        created_at: a.created_at || a.published_at || a.publishedAt,
-        url: a.url
+        title: a.raw?.title || a.title || 'No title',
+        created_at: a.created_at || a.published_at || a.publishedAt || a.raw?.publishedAt,
+        url: a.raw?.url || a.url || '#'
       }));
       console.debug('[useNewsScraper] Received articles:', { count: sorted.length, first3: preview });
 

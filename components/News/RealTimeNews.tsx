@@ -126,8 +126,8 @@ export const RealTimeNews = ({
       const fetchedArticlesData = Array.isArray(data) ? data : (Array.isArray(data.articles) ? data.articles : []);
       console.log('RealTimeNews received articles:', { 
         count: fetchedArticlesData.length, 
-        firstTitle: fetchedArticlesData[0]?.title,
-        firstPublishedAt: fetchedArticlesData[0]?.publishedAt || fetchedArticlesData[0]?.published_at
+        firstTitle: fetchedArticlesData[0]?.raw?.title || fetchedArticlesData[0]?.title,
+        firstPublishedAt: fetchedArticlesData[0]?.raw?.publishedAt || fetchedArticlesData[0]?.publishedAt || fetchedArticlesData[0]?.published_at
       });
       setArticles(fetchedArticlesData); 
       
@@ -248,12 +248,12 @@ export const RealTimeNews = ({
             const articleForCard: ProcessedArticle = {
               id: String(article.id ?? index), // Ensure ID is string, provide fallback if undefined
               raw: {
-                title: article.title,
-                content: article.content ?? 'Content unavailable', // Handle optional content
-                url: article.url,
-                publishedAt: article.publishedAt, // Use correct camelCase name
-                source: article.sourceName, // Use correct camelCase name
-                created_at: article.createdAt // Use correct camelCase name
+                title: article.raw?.title || article.title || 'No title',
+                content: article.raw?.content || article.content || 'Content unavailable',
+                url: article.raw?.url || article.url || '#',
+                publishedAt: article.raw?.publishedAt || article.publishedAt || article.published_at,
+                source: article.raw?.source || article.sourceName || article.source || 'Unknown',
+                created_at: article.created_at || article.createdAt
               },
               // Provide default/empty values for analysis fields
               summary: '',
