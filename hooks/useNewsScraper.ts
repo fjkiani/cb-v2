@@ -120,11 +120,12 @@ export function useNewsScraper(refreshInterval = 300000) {
 
     setupSubscription();
 
-    timeoutId = window.setInterval(() => {
-      if (subscriptionStatus !== 'SUBSCRIBED') {
-        fetchNews();
-      }
-    }, refreshInterval);
+    // Disable automatic fetching to prevent infinite loops
+    // timeoutId = window.setInterval(() => {
+    //   if (subscriptionStatus !== 'SUBSCRIBED') {
+    //     fetchNews();
+    //   }
+    // }, refreshInterval);
 
     return () => {
       mounted = false;

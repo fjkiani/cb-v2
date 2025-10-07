@@ -172,13 +172,14 @@ export const NewsDashboard: React.FC = () => {
         lastSignature: lastSignature ? lastSignature.substring(0, 50) + '...' : 'null'
       });
 
-      if (newsSignature !== lastSignature) {
+      // Only fetch if we haven't processed this exact set of articles before
+      if (newsSignature !== lastSignature && newsSignature.length > 0) {
         console.log('[useEffect TE Overview] Conditions MET. Calling fetchTeMarketOverview.');
         fetchTeMarketOverview(news);
         // Mark that we have fetched for this news signature
         overviewFetchedForNewsRef.current = newsSignature;
       } else {
-        console.log('[useEffect TE Overview] Skipping - already processed these articles');
+        console.log('[useEffect TE Overview] Skipping - already processed these articles or empty signature');
       }
     } else {
       console.log('[useEffect TE Overview] Skipping - conditions not met:', {
@@ -187,7 +188,7 @@ export const NewsDashboard: React.FC = () => {
         newsLength: news.length
       });
     }
-  }, [news, newsLoading]); // Remove newsError from dependencies to prevent infinite loop
+  }, [news.length, newsLoading]); // Only depend on news.length and loading state, not the entire news array
   // --- End Trigger ---
 
   const newsForProcessor: ServiceRawNewsArticle[] = useMemo(() => {
