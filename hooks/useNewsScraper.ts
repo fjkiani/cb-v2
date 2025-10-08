@@ -97,7 +97,8 @@ export function useNewsScraper(refreshInterval = 300000) {
 
     async function setupSubscription() {
       try {
-        await fetchNews();
+        // Disable automatic fetchNews to prevent infinite loops
+        // await fetchNews();
 
         channel = supabase.channel('articles-changes')
           .on(

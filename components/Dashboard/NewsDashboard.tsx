@@ -188,7 +188,7 @@ export const NewsDashboard: React.FC = () => {
         newsLength: news.length
       });
     }
-  }, [news.length, newsLoading]); // Only depend on news.length and loading state, not the entire news array
+  }, [news.length]); // Only depend on news.length to prevent infinite loops
   // --- End Trigger ---
 
   const newsForProcessor: ServiceRawNewsArticle[] = useMemo(() => {
